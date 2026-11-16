@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperTrade - Open-Source HyperEVM Wallet & Meme DEX</title>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #061014; color: #ffffff; margin: 0; padding: 16px; display: flex; justify-content: center; }
+        .container { max-width: 500px; width: 100%; background: #0c1d24; padding: 24px; border-radius: 18px; border: 1px solid #1b3b48; box-shadow: 0 12px 35px rgba(0,0,0,0.7); }
+        h2 { color: #50e3c2; text-align: center; margin: 4px 0 16px 0; font-size: 22px; }
+        .badge { background: #50e3c21a; color: #50e3c2; padding: 5px 14px; border-radius: 20px; font-size: 12px; display: inline-block; border: 1px solid #50e3c244; font-weight: 600; }
+        .card { background: #061014; padding: 16px; border-radius: 14px; margin-bottom: 16px; border: 1px solid #1b3b48; }
+        label { font-size: 12px; color: #8ab4c4; display: block; margin-top: 10px; font-weight: 500; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 6px; border-radius: 10px; border: 1px solid #264d5c; background: #10262e; color: white; font-size: 14px; box-sizing: border-box; outline: none; }
+        input:focus, select:focus { border-color: #50e3c2; }
+        button { background: #50e3c2; color: #061014; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; font-size: 15px; }
+        button:hover { background: #3bc9a8; transform: translateY(-1px); }
+        .btn-dark { background: #183440; color: #ffffff; border: 1px solid #264d5c; }
+        .btn-dark:hover { background: #224656; }
+        .tx-link { color: #50e3c2; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 8px; word-break: break-all; }
+        .hidden { display: none; }
+        .trade-item { background: #0c1d24; padding: 10px; border-radius: 8px; margin-top: 8px; border-left: 3px solid #50e3c2; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="text-align: center;">
+        <span class="badge">● HyperEVM Mainnet (Chain ID: 999)</span>
+        <h2>HyperTrade वॉलेट और मीम DEX</h2>
+    </div>
+
+    <!-- वॉलेट कनेक्ट / क्रिएट सेक्शन -->
+    <div id="auth-section" class="card">
+        <p style="font-size: 13px; color: #8ab4c4; margin-top: 0; text-align: center;">100% नॉन-कस्टोडियल और ओपन-सोर्स ट्रेडिंग वॉलेट</p>
+        <button onclick="createWallet()">+ नया HyperEVM वॉलेट बनाएं</button>
+        <button class="btn-dark" onclick="connectBrowserWallet()">MetaMask / Trust Wallet जोड़ें</button>
+    </div>
+
+    <!-- मुख्य ट्रेडिंग और वॉलेट डैशबोर्ड -->
+    <div id="app-section" class="hidden">
+        <!-- बैलेंस कार्ड -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; color: #8ab4c4;">आपका वॉलेट एड्रेस:</span>
+                <button onclick="refreshBalance()" style="width: auto; padding: 4px 10px; font-size: 11px; margin: 0;" class="btn-dark">रिफ्रेश ↻</button>
+            </div>
+            <div id="user-address" style="font-size: 13px; color: #50e3c2; word-break: break-all; margin: 6px 0; font-family: monospace;"></div>
+            <div style="font-size: 24px; font-weight: bold; color: #ffffff; margin-top: 6px;" id="hype-balance">0.0000 HYPE</div>
+            <a id="explorer-link" href="#" target="_blank" class="tx-link">HyperEVMScan पर पूरा इतिहास लाइव देखें ↗</a>
+        </div>
+
+        <!-- रियल ट्रेड (Swap) बॉक्स -->
+        <div class="card">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #50e3c2;">असली टोकन और मीम कॉइन ट्रेड (Real Swap)</h3>
+            
+            <label>बेचने के लिए HYPE की मात्रा (Sell Amount):</label>
+            <input type="number" id="sell-amount" placeholder="उदाहरण: 0.05" step="0.001">
+
+            <label>खरीदने के लिए टोकन चुनें (Buy Token):</label>
+            <select id="buy-token" onchange="toggleCustomToken()">
+                <option value="0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb">USDT0 (Tether USD - HyperEVM)</option>
+                <option value="0x5555555555555555555555555555555555555555">WHYPE (Wrapped HYPE)</option>
+                <option value="CUSTOM">+ कस्टम मीम कॉइन एड्रेस डालें (0x...)</option>
+            </select>
+
+            <!-- कस्टम मीम कॉइन एड्रेस इनपुट -->
+            <div id="custom-token-box" class="hidden">
+                <label>मीम कॉइन का Contract Address पेस्ट करें:</label>
+                <input type="text" id="custom-token-address" placeholder="0x...">
+            </div>
+
+            <button onclick="executeHyperTrade()" style="margin-top: 16px;">लाइव रेट देखें और Real Trade करें</button>
+            <div id="trade-status" style="font-size: 13px; margin-top: 12px; color: #fbbf24; line-height: 1.4;"></div>
+        </div>
+
+        <!-- ओपन-सोर्स लाइव ट्रेड ट्रैकर -->
+        <div class="card">
+            <h4 style="margin: 0 0 6px 0; font-size: 14px; color: #50e3c2;">ओपन-सोर्स ट्रेड ट्रैकर (Live On-Chain Feed)</h4>
+            <div id="live-trades-feed" style="font-size: 12px; color: #8ab4c4;">
+                इस सेशन के सभी ट्रेड्स यहाँ रीयल-टाइम में दिखेंगे।
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // HyperEVM Mainnet आधिकारिक सेटिंग्स
+    const HYPER_RPC = "https://hyperliquid.xyz";
+    const CHAIN_ID = 999;
+    const CHAIN_HEX = "0x3e7";
+
+    // आपकी कमाई (कमीशन) का वॉलेट एड्रेस और 0.5% फीस
+    const FEE_RECEIVER_WALLET = "0x011F446215C7C3663F7c0933938bD26E09e6e9C8";
+    const FEE_PERCENTAGE = "0.005"; // 0.5% प्लेटफॉर्म फीस
+    const INTEGRATOR_ID = "HyperTradeOpen";
+
+    const provider = new ethers.JsonRpcProvider(HYPER_RPC);
+    let signer = null;
+    let userAddress = "";
+
+    function toggleCustomToken() {
+        const selectVal = document.getElementById("buy-token").value;
+        const customBox = document.getElementById("custom-token-box");
+        if (selectVal === "CUSTOM") {
+            customBox.classList.remove("hidden");
+        } else {
+            customBox.classList.add("hidden");
+        }
+    }
+
+    // 1. नया नॉन-कस्टोडियल वॉलेट बनाना
+    async function createWallet() {
+        const wallet = ethers.Wallet.createRandom().connect(provider);
+        signer = wallet;
+        userAddress = wallet.address;
+        alert("⚠️ सुरक्षा चेतावनी: अपना 12 शब्दों का रिकवरी सीड फ्रेज़ सुरक्षित लिख लें। यह केवल आपके डिवाइस पर है:\n\n" + wallet.mnemonic.phrase);
+        loadDashboard();
+    }
+
+    // 2. MetaMask / Trust Wallet को HyperEVM Mainnet से जोड़ना
+    async function connectBrowserWallet() {
+        if (!window.ethereum) {
+            alert("कृपया ब्राउज़र में MetaMask या Trust Wallet एक्सटेंशन इंस्टॉल करें, या '+ नया HyperEVM वॉलेट बनाएं' चुनें।");
+            return;
+        }
+        try {
+            const browserProvider = new ethers.BrowserProvider(window.ethereum);
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: CHAIN_HEX }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: CHAIN_HEX,
+                            chainName: 'HyperEVM',
+                            nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+                            rpcUrls: [HYPER_RPC],
+                            blockExplorerUrls: ['https://hyperevmscan.io']
+                        }],
+                    });
+                }
+            }
+            signer = await browserProvider.getSigner();
+            userAddress = await signer.getAddress();
+            loadDashboard();
+        } catch (err) {
+            alert("वॉलेट कनेक्ट करने में त्रुटि: " + err.message);
+        }
+    }
+
+    async function loadDashboard() {
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("app-section").classList.remove("hidden");
+        document.getElementById("user-address").innerText = userAddress;
+        document.getElementById("explorer-link").href = `https://hyperevmscan.ioaddress/${userAddress}`;
+        refreshBalance();
+    }
+
+    async function refreshBalance() {
+        if (!userAddress) return;
+        const bal = await provider.getBalance(userAddress);
+        document.getElementById("hype-balance").innerText = parseFloat(ethers.formatEther(bal)).toFixed(4) + " HYPE";
+    }
+
+    // 3. असली ट्रेड (Real Swap) और लाइव ट्रैकिंग
+    async function executeHyperTrade() {
+        const amountHype = document.getElementById("sell-amount").value;
+        let toToken = document.getElementById("buy-token").value;
+        const statusDiv = document.getElementById("trade-status");
+
+        if (toToken === "CUSTOM") {
+            toToken = document.getElementById("custom-token-address").value.trim();
+            if (!ethers.isAddress(toToken)) {
+                alert("कृपया सही मीम कॉइन Contract Address (0x...) डालें।");
+                return;
+            }
+        }
+
+        if (!amountHype || amountHype <= 0) {
+            alert("कृपया HYPE की सही मात्रा डालें।");
+            return;
+        }
+
+        statusDiv.innerText = "HyperEVM DEX से लाइव मार्केट रेट निकाला जा रहा है...";
+        const fromAmountWei = ethers.parseEther(amountHype.toString()).toString();
+        const NATIVE_HYPE = "0x0000000000000000000000000000000000000000";
+
+        try {
